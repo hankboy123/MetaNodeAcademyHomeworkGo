@@ -199,7 +199,7 @@ func merge(intervals [][2]int) [][2]int {
 		return intervals
 	}
 
-	result := [][2]int{}
+	//result := [][2]int{}
 
 	first := intervals[0]
 	for _, interval := range intervals[1:] {
@@ -224,9 +224,10 @@ func merge(intervals [][2]int) [][2]int {
 
 		}
 
-		expandPair
+		//expandPair
 
 	}
+	return nil
 
 }
 

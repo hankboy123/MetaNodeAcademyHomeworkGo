@@ -1,0 +1,33 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "go build",
+            "type": "shell",
+            "command": "go",
+            "args": ["build", "."],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$go"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "go run",
+            "type": "shell",
+            "command": "go",
+            "args": ["run", "main.go"],
+            "group": "build"
+        },
+        {
+            "label": "go install",
+            "type": "shell",
+            "command": "go",
+            "args": ["install", "."]
+        }
+    ]
+}
