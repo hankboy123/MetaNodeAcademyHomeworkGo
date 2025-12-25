@@ -3,7 +3,6 @@ package main
 import (
 	metanodeacademyhomeworkgo "MetaNodeAcademyHomeworkGo"
 	"fmt"
-	"math"
 )
 
 func main() {
@@ -107,47 +106,45 @@ func isValid(s string) bool {
 	}
 }
 
-
-func findLongestPre(strs []string) string{
-	if len(strs) ==0 {
+func findLongestPre(strs []string) string {
+	if len(strs) == 0 {
 		return ""
 	}
 
 	prefix := strs[0]
 
-	for i:=1;i< len(strs);i++{
-		j:=0
-		for j<len(prefix) && j < len(strs[i]) && prefix[j] == strs[i][j]{
+	for i := 1; i < len(strs); i++ {
+		j := 0
+		for j < len(prefix) && j < len(strs[i]) && prefix[j] == strs[i][j] {
 			j++
 		}
 
 		prefix = prefix[:j]
-		if prefix == ""{
+		if prefix == "" {
 			return ""
 		}
 	}
 	return prefix
 }
 
-
 func plusOne(digits []int) []int {
-    n := len(digits)
-    
-    // 从最后一位开始向前遍历
-    for i := n - 1; i >= 0; i-- {
-        if digits[i] < 9 {
-            digits[i]++
-            return digits
-        }
-        // 当前位是9，加1后变为0，产生进位
-        digits[i] = 0
-    }
-    
-    // 如果所有位都是9（如999->1000），需要在最前面加1
-    result := make([]int, n+1)
-    result[0] = 1
-    // 后面的位都是0
-    return result
+	n := len(digits)
+
+	// 从最后一位开始向前遍历
+	for i := n - 1; i >= 0; i-- {
+		if digits[i] < 9 {
+			digits[i]++
+			return digits
+		}
+		// 当前位是9，加1后变为0，产生进位
+		digits[i] = 0
+	}
+
+	// 如果所有位都是9（如999->1000），需要在最前面加1
+	result := make([]int, n+1)
+	result[0] = 1
+	// 后面的位都是0
+	return result
 }
 
 /*
@@ -163,27 +160,28 @@ int[] nums = [...]; // 输入数组
 int[] expectedNums = [...]; // 长度正确的期望答案
 int k = removeDuplicates(nums); // 调用
 assert k == expectedNums.length;
-for (int i = 0; i < k; i++) {
-    assert nums[i] == expectedNums[i];
-}
-如果所有断言都通过，那么您的题解将被 通过。
 
+	for (int i = 0; i < k; i++) {
+	    assert nums[i] == expectedNums[i];
+	}
+
+如果所有断言都通过，那么您的题解将被 通过。
 */
 func removeDuplicates(nums []int) int {
-     if len(nums) ==0 {
+	if len(nums) == 0 {
 		return 0
 	}
 
-	i :=0
-	for j :=0;j<len(nums);j++{
-		
-		if nums[j]!=nums[i]{
-			nums[i+1]=nums[j]
-            i++
+	i := 0
+	for j := 0; j < len(nums); j++ {
+
+		if nums[j] != nums[i] {
+			nums[i+1] = nums[j]
+			i++
 
 		}
 	}
-    return i+1
+	return i + 1
 }
 
 /*
@@ -192,10 +190,45 @@ func removeDuplicates(nums []int) int {
 可以先对区间数组按照区间的起始位置进行排序，然后使用一个切片来存储合并后的区间，
 遍历排序后的区间数组，将当前区间与切片中最后一个区间进行比较，如果有重叠，则合并区间；如果没有重叠，则将当前区间添加到切片中。
 */
-func merge( [][2]int intervals) [][2]int{
+func merge(intervals [][2]int) [][2]int {
+	if len(intervals) == 0 {
+		return make([][2]int, 0)
+	}
+
+	if len(intervals) == 1 {
+		return intervals
+	}
+
+	result := [][2]int{}
+
+	first := intervals[0]
+	for _, interval := range intervals[1:] {
+		start := interval[0]
+		end := interval[1]
+		expandPair := [2]int{}
+
+		if start < first[0] && end >= first[0] && end < first[1] {
+			expandPair[0] = start
+			expandPair[1] = first[1]
+		} else if start < first[0] && end >= first[1] {
+			expandPair[0] = start
+			expandPair[1] = end
+
+		} else if start >= first[0] && start < first[1] && end > first[1] {
+			expandPair[0] = first[0]
+			expandPair[1] = end
+
+		} else if start >= first[0] && end < first[1] {
+			expandPair[0] = first[0]
+			expandPair[1] = first[1]
+
+		}
+
+		expandPair
+
+	}
 
 }
-
 
 /*
 给定一个整数数组 nums 和一个整数目标值 target，请你在该数组中找出 和为目标值 target  的那 两个 整数，并返回它们的数组下标。
@@ -203,8 +236,6 @@ func merge( [][2]int intervals) [][2]int{
 你可以假设每种输入只会对应一个答案，并且你不能使用两次相同的元素。
 
 你可以按任意顺序返回答案。
-
- 
 
 示例 1：
 
@@ -219,7 +250,6 @@ func merge( [][2]int intervals) [][2]int{
 
 输入：nums = [3,3], target = 6
 输出：[0,1]
- 
 
 提示：
 
@@ -229,25 +259,24 @@ func merge( [][2]int intervals) [][2]int{
 只会存在一个有效答案
 */
 func twoSum(nums []int, target int) []int {
-	 // 创建一个哈希表来存储数字和对应的索引
-    numMap := make(map[int]int)
-    
-    for i, num := range nums {
-        // 计算目标值与当前数字的差值
-        complement := target - num
-        
-        // 检查差值是否已经在哈希表中
-        if index, found := numMap[complement]; found {
-            // 找到答案，返回两个索引
-            return []int{index, i}
-        }
-        
-        // 将当前数字和索引添加到哈希表中
-        numMap[num] = i
-    }
-    
-    // 根据题目假设，总会有一个答案，所以这里不会执行到
-    return nil
-    
-    
+	// 创建一个哈希表来存储数字和对应的索引
+	numMap := make(map[int]int)
+
+	for i, num := range nums {
+		// 计算目标值与当前数字的差值
+		complement := target - num
+
+		// 检查差值是否已经在哈希表中
+		if index, found := numMap[complement]; found {
+			// 找到答案，返回两个索引
+			return []int{index, i}
+		}
+
+		// 将当前数字和索引添加到哈希表中
+		numMap[num] = i
+	}
+
+	// 根据题目假设，总会有一个答案，所以这里不会执行到
+	return nil
+
 }
