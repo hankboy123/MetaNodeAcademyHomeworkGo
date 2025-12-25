@@ -108,7 +108,7 @@ func isValid(s string) bool {
 }
 
 
-findLongestPre(strs []string) string{
+func findLongestPre(strs []string) string{
 	if len(strs) ==0 {
 		return ""
 	}
@@ -126,6 +126,7 @@ findLongestPre(strs []string) string{
 			return ""
 		}
 	}
+	return prefix
 }
 
 
