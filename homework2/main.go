@@ -28,4 +28,9 @@ func main() {
 	})
 
 	Run(operations)
+
+	c := Circle{Radius: 5}
+	var s Shape = c // 接口变量可以存储实现了接口的类型
+	fmt.Println("Area:", s.Area())
+	fmt.Println("Perimeter:", s.Perimeter())
 }
