@@ -36,4 +36,10 @@ func main() {
 
 	p := Employee{Person: Person{Age: 30, Name: "Alice"}, EmployeeID: "E123"}
 	p.PrintInfo()
+
+	ch := make(chan int)
+	quit := make(chan int)
+
+	go Send(ch, quit)
+	Receive(ch, quit)
 }

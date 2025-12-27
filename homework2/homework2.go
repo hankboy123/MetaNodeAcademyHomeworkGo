@@ -115,3 +115,23 @@ func Run(operations []Operation) {
 	wg.Wait()
 	fmt.Println("所有协程打印完成")
 }
+
+func Send(ch chan int, quit chan int) {
+	for i := 0; i < 10; i++ {
+		ch <- i
+	}
+	quit <- 1
+}
+
+func Receive(ch chan int, quit chan int) {
+	for true {
+		select {
+		case <-quit:
+			fmt.Println("接收完成")
+			return
+		case num := <-ch:
+			fmt.Println("receive:", num)
+		}
+	}
+
+}
