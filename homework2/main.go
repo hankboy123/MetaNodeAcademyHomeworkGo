@@ -33,4 +33,7 @@ func main() {
 	var s Shape = c // 接口变量可以存储实现了接口的类型
 	fmt.Println("Area:", s.Area())
 	fmt.Println("Perimeter:", s.Perimeter())
+
+	p := Employee{Person: Person{Age: 30, Name: "Alice"}, EmployeeID: "E123"}
+	p.PrintInfo()
 }
