@@ -62,4 +62,15 @@ func main() {
 	wg1.Wait()
 	fmt.Println("Final Counter Value:", counter.Value())
 
+	atomicCounter := AtomicCounter{}
+	var wg2 sync.WaitGroup
+	wg2.Add(1000)
+	for i := 0; i < 1000; i++ {
+		go func() {
+			defer wg2.Done()
+			atomicCounter.Increment()
+		}()
+	}
+	wg2.Wait()
+	fmt.Println("Final Counter Value2:", atomicCounter.Value())
 }
