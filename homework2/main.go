@@ -42,4 +42,10 @@ func main() {
 
 	go Send(ch, quit)
 	Receive(ch, quit)
+
+	ch1 := make(chan int, 100)
+	quit1 := make(chan int)
+
+	go Send(ch1, quit1)
+	Receive(ch1, quit1)
 }
