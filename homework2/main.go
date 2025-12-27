@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -48,4 +49,17 @@ func main() {
 
 	go Send(ch1, quit1)
 	Receive(ch1, quit1)
+
+	counter := Counter{}
+	var wg1 sync.WaitGroup
+	wg1.Add(1000)
+	for i := 0; i < 1000; i++ {
+		go func() {
+			defer wg1.Done()
+			counter.Increment()
+		}()
+	}
+	wg1.Wait()
+	fmt.Println("Final Counter Value:", counter.Value())
+
 }
