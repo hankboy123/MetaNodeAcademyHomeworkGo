@@ -20,11 +20,10 @@ func (e *AppError) Error() string {
 	return e.Message
 }
 
-func NewAppError(code int, message string, err error) *AppError {
+func NewAppError(code int, message string) *AppError {
 	return &AppError{
 		Code:    code,
 		Message: message,
-		Err:     err,
 	}
 }
 
