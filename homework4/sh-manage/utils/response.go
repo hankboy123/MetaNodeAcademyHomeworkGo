@@ -29,7 +29,7 @@ func Error(c *gin.Context, code int, message string) {
 	})
 }
 
-func varifyCode(c *gin.Context, errors map[string]string) bool {
+func ValidationError(c *gin.Context, errors map[string]string) {
 	c.JSON(http.StatusUnprocessableEntity, Response{
 		Code:    422,
 		Message: "validation failed",
