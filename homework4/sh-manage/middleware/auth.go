@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"sh-manage/consts"
 	"sh-manage/utils"
 	"strings"
 
@@ -24,7 +25,7 @@ func Auth(jwtSecret []byte) gin.HandlerFunc {
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
+		if len(parts) != 2 || parts[0] != consts.AuthTypePre {
 			utils.Error(c, http.StatusUnauthorized, "Authorization header format must be Bearer {token}")
 			c.Abort()
 			//c.AbortWithStatusJSON(401, gin.H{"error": "Authorization header format must be Bearer {token}"})
@@ -41,8 +42,8 @@ func Auth(jwtSecret []byte) gin.HandlerFunc {
 			return
 		}
 
-		c.Set("userID", claims.UserId)
-		c.Set("username", claims.Username)
+		c.Set(consts.UserID, claims.UserId)
+		c.Set(consts.UserName, claims.Username)
 
 		c.Next()
 	}
