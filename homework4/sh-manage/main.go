@@ -1,12 +1,8 @@
 package main
 
-import (
-	"sh-manage/config"
-)
-
 func main() {
 	// 加载配置
-	cfg := config.Load("")
+	//cfg := config.Load("")
 
 	// 自动迁移
 	//if err := db.AutoMigrate(&models.User{}); err != nil {
