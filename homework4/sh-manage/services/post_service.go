@@ -30,8 +30,8 @@ func (p *PostService) CreatePost(post *dto.PostDto) (*models.Post, *utils.AppErr
 	}
 
 	postModel := &models.Post{
-		Title:   post.Title,
-		Content: post.Content,
+		Title:   *post.Title,
+		Content: *post.Content,
 		UserId:  utils.GetCurrentUserID(p.context),
 	}
 
@@ -40,4 +40,50 @@ func (p *PostService) CreatePost(post *dto.PostDto) (*models.Post, *utils.AppErr
 	}
 	return postModel, nil
 
+}
+func (p *PostService) GetPostByID(postID uint) (*models.Post, *utils.AppError) {
+	var post models.Post
+	if err := p.db.First(&post, postID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, utils.NewAppError(404, "Post not found")
+		}
+		return nil, utils.NewAppError(500, "Failed to retrieve Post")
+	}
+	return &post, nil
+}
+
+func (p *PostService) UpdatePost(post *dto.PostDto) (*models.Post, *utils.AppError) {
+	if post == nil {
+		return nil, utils.NewAppError(500, "参数不能为空")
+	}
+	if post.ID == nil {
+		return nil, utils.NewAppError(500, "参数ID不能为空")
+	}
+	existPost, err := p.GetPostByID(*post.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := post.Validate(); err != nil {
+		return nil, err
+	}
+
+	existPost.Title = *post.Title
+	existPost.Content = *post.Content
+
+	if err := p.db.Save(&existPost).Error; err != nil {
+		return nil, utils.NewAppError(500, "Failed to create post")
+	}
+	return existPost, nil
+
+}
+
+func (p *PostService) DeleteByID(postID uint) *utils.AppError {
+	if err := p.db.Delete(&models.Post{}, postID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return utils.NewAppError(404, "Post not found")
+		}
+		return utils.NewAppError(500, "Failed to delete Post")
+	}
+	return nil
 }
