@@ -3,7 +3,9 @@ package services
 import (
 	"sh-manage/dto"
 	"sh-manage/models"
+	"sh-manage/tools"
 	"sh-manage/utils"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -50,6 +52,20 @@ func (p *PostService) GetPostByID(postID uint) (*models.Post, *utils.AppError) {
 		return nil, utils.NewAppError(500, "Failed to retrieve Post")
 	}
 	return &post, nil
+}
+
+func (p *PostService) GetPostByPage(postPageDTO *dto.PostPageDTO) (*dto.PageResult[models.Post], *utils.AppError) {
+
+	db := p.db.Model(&models.Post{})
+	if postPageDTO.Title != nil || strings.TrimSpace(*postPageDTO.Title) != "" {
+		db.Where("", postPageDTO.Title)
+	}
+	if postPageDTO.Content != nil || strings.TrimSpace(*postPageDTO.Content) != "" {
+		db.Where("", postPageDTO.Title)
+	}
+	// 执行分页查询
+	var posts []models.Post
+	return tools.Paginate(db, postPageDTO.BasePageQuery, &posts)
 }
 
 func (p *PostService) UpdatePost(post *dto.PostDto) (*models.Post, *utils.AppError) {

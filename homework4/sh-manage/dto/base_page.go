@@ -1,8 +1,8 @@
 package dto
 
 import (
-	"errors"
 	"fmt"
+	"sh-manage/utils"
 	"strings"
 )
 
@@ -25,12 +25,12 @@ func NewBasePageQuery() *BasePageQuery {
 }
 
 // Validate 验证分页参数
-func (q *BasePageQuery) Validate() error {
+func (q *BasePageQuery) Validate() *utils.AppError {
 	if q.Page < 1 {
-		return errors.New("页码不能小于1")
+		return utils.NewAppError(500, "页码不能小于1")
 	}
 	if q.PageSize < 1 || q.PageSize > 1000 {
-		return errors.New("每页大小必须在1-1000之间")
+		return utils.NewAppError(500, "每页大小必须在1-1000之间")
 	}
 	return nil
 }
