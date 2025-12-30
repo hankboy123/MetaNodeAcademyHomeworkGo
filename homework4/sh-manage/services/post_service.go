@@ -61,7 +61,7 @@ func (p *PostService) GetPostByPage(postPageDTO *dto.PostPageDTO) (*dto.PageResu
 		db.Where("", postPageDTO.Title)
 	}
 	if postPageDTO.Content != nil || strings.TrimSpace(*postPageDTO.Content) != "" {
-		db.Where("", postPageDTO.Title)
+		db.Where("", postPageDTO.Content)
 	}
 	// 执行分页查询
 	var posts []models.Post
