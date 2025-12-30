@@ -7,13 +7,10 @@ import (
 )
 
 type User struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Username  string         `gorm:"unique;not null;size:50" json:"username"`
-	Email     string         `gorm:"unique;not null;size:100" json:"email"`
-	Password  string         `gorm:"not null" json:"-"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeleteAt  gorm.DeletedAt `gorm:"index" json:"-"`
+	gorm.Model
+	Username string `gorm:"unique;not null;size:50" json:"username"`
+	Email    string `gorm:"unique;not null;size:100" json:"email"`
+	Password string `gorm:"not null" json:"-"`
 }
 
 type CreateUserRequest struct {

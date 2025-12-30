@@ -8,5 +8,7 @@ func Register(model interface{}) {
 
 func GetModels() []interface{} {
 	Register(&User{})
+	Register(&Comment{})
+	Register(&Post{})
 	return allModels
 }
