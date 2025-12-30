@@ -24,7 +24,7 @@ func main() {
 	}
 
 	// 自动迁移
-	if err := db.AutoMigrate(&models.User{}); err != nil {
+	if err := db.AutoMigrate(models.GetModels()...); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
