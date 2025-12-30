@@ -5,24 +5,30 @@ import (
 	"sh-manage/config"
 	"sh-manage/handlers"
 	"sh-manage/middleware"
+	"sh-manage/models"
 	"sh-manage/services"
 	"sh-manage/utils"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 func main() {
 	// 加载配置
 	cfg := config.Load("")
 
-	// db,err :=gorm.Open(null,&gorm.Config{})
+	db, err := gorm.Open(mysql.Open(config.GetMySQLDSN(cfg)), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Failed to connect database: %v", err)
+	}
 
 	// 自动迁移
-	//if err := db.AutoMigrate(&models.User{}); err != nil {
-	//	log.Fatalf("Failed to migrate database: %v", err)
-	//}
+	if err := db.AutoMigrate(&models.User{}); err != nil {
+		log.Fatalf("Failed to migrate database: %v", err)
+	}
 
-	userService := services.NewUserService(nil)
+	userService := services.NewUserService(db)
 	userHandler := handlers.NewUserHandler(userService, []byte(cfg.JWT.Secret))
 
 	r := gin.Default()

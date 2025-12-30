@@ -97,3 +97,14 @@ func Load(configPath string) *Config {
 	return &GlobalConfig
 
 }
+
+func GetMySQLDSN(config *Config) string {
+	user := config.Database.Username
+	pass := config.Database.Password
+	host := config.Database.Host
+	port := config.Database.Port
+	dbname := config.Database.DBName
+
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		user, pass, host, port, dbname)
+}
