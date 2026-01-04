@@ -1,25 +1,28 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"log"
 	"math/big"
 	"sh-ethereum/utils"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/gin-gonic/gin"
 )
 
 type EthClient struct {
 	// 这里可\以添加数据库连接等依赖
-	ginContext *gin.Context
+	context    *context.Context
 	etchClient *ethclient.Client
 }
 
-func NewEthClient(c *gin.Context, d *ethclient.Client) *EthClient {
-	return &EthClient{ginContext: c, etchClient: d}
+func NewEthClient(c *context.Context, d *ethclient.Client) *EthClient {
+	return &EthClient{context: c, etchClient: d}
 }
 
 func (p *EthClient) getBlockByTag() (*types.Header, common.Hash, *utils.AppError) {
@@ -108,5 +111,59 @@ func (p *EthClient) getBlockByTag() (*types.Header, common.Hash, *utils.AppError
 }
 
 func (p *EthClient) fetchBlockWithRetry(blockNumber *big.Int, maxRetries int) (*types.Block, *utils.AppError) {
+	var lastErr *utils.AppError
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		reqCtx, cancel := context.WithTimeout(*p.context, 10*time.Second)
+		block, err := p.etchClient.BlockByNumber(reqCtx, blockNumber)
+		cancel()
 
+		if err == nil {
+			return block, nil
+		}
+		lastErr = lastErr
+		if attempt < maxRetries-1 {
+			backoff := time.Duration((attempt+1)*500) * time.Millisecond
+			log.Printf("[WARN] failed to fetch block %s, retry %d/%d after %v: %v",
+				blockNumber.String(), attempt+1, maxRetries, backoff, err)
+			time.Sleep(backoff) // 等待一段时间后重试
+		}
+		lastErr = utils.NewAppError("EthClient.fetchBlockWithRetry", "Failed to fetch block", err.Error(), 500)
+		time.Sleep(2 * time.Second) // 等待一段时间后重试
+	}
+	return nil, lastErr
+}
+
+func (p *EthClient) fetchBlockRange(start, end uint64, rateLimit time.Duration) ([]types.Block, *utils.AppError) {
+	successCount := 0
+	skipCount := 0
+	ticker := time.NewTicker(rateLimit)
+	defer ticker.Stop()
+	result := []types.Block{}
+	for num := start; num <= end; num++ {
+		<-ticker.C
+		blockNumber := big.NewInt(0).SetUint64(num)
+		block, err := p.fetchBlockWithRetry(blockNumber, 2)
+		if err != nil {
+			skipCount++
+			log.Printf("[ERROR] failed to fetch block %d: %v", num, err)
+			continue
+		}
+		result = append(result, *block)
+		successCount++
+		printBlockInfo(fmt.Sprintf("Block %d", num), block)
+
+		// 检查上下文是否已取消
+		select {
+		case <-(*p.context).Done():
+			log.Printf("[INFO] Context cancelled, stopping at block %d", num)
+			return nil, utils.NewAppError("EthClient.fetchBlockRange", "Context cancelled", "operation aborted", 499)
+		default:
+		}
+	}
+	log.Printf("[INFO] Finished fetching blocks from %d to %d: %d succeeded, %d skipped", start, end, successCount, skipCount)
+	return result, nil
+}
+
+// printBlockInfo 打印详细的区块信息
+func printBlockInfo(title string, block *types.Block) {
 }
