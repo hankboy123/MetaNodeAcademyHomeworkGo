@@ -156,7 +156,7 @@ func (p *EthClient) fetchBlockRange(start, end uint64, rateLimit time.Duration) 
 		select {
 		case <-(*p.context).Done():
 			log.Printf("[INFO] Context cancelled, stopping at block %d", num)
-			return nil, utils.NewAppError("EthClient.fetchBlockRange", "Context cancelled", "operation aborted", 499)
+			return nil, utils.NewAppError(499, "EthClient.fetchBlockRange Context cancelled operation aborted")
 		default:
 		}
 	}
@@ -165,5 +165,21 @@ func (p *EthClient) fetchBlockRange(start, end uint64, rateLimit time.Duration) 
 }
 
 // printBlockInfo 打印详细的区块信息
-func printBlockInfo(title string, block *types.Block) {
+func (p *EthClient) printBlockInfo(title string, block *types.Block) {
+}
+
+func (p *EthClient) queryTransactionByHash(txHashHex string) (tx *types.Transaction, isPending bool, receipt *types.Receipt, utils.AppError) {
+	txHash := common.HexToHash(txHashHex)
+
+	tx, isPending, err := p.etchClient.TransactionByHash(*p.context, txHash)
+	if err != nil {
+		return nil, false, nil, utils.NewAppError(500, "EthClient.queryTransactionByHashFailed to query transaction by hash"+err.Error())
+	}
+
+	receipt, err := p.etchClient.TransactionReceipt(*p.context, txHash)
+	if err != nil {
+		return nil, false, nil, utils.NewAppError(500, "EthClient.queryTransactionByHash Failed to get transaction receipt"+err.Error())
+	}
+	return tx, isPending, receipt, nil
+
 }
