@@ -87,6 +87,10 @@ func (es *EventStore) List() []TransferEvent {
 }
 
 func main() {
+	os.Setenv("ETH_HTTP_URL", "https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY")
+	os.Setenv("ETH_WS_URL", "wss://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY")
+	os.Setenv("ERC20_CONTRACT_ADDRESS", "wss://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY")
+
 	rpcURL := os.Getenv("ETH_WS_URL")
 
 	if rpcURL == "" {
