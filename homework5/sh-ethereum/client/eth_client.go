@@ -2,16 +2,19 @@ package client
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"sh-ethereum/utils"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -29,9 +32,9 @@ func (p *EthClient) getBlockByTag() (*types.Header, common.Hash, *utils.AppError
 
 	var raw json.RawMessage
 
-	err := p.etchClient.Client().CallContext(p.ginContext, &raw, "eth_getBlockByTag", "latest", false)
+	err := p.etchClient.Client().CallContext(*p.context, &raw, "eth_getBlockByTag", "latest", false)
 	if err != nil {
-		return nil, common.Hash{}, utils.NewAppError("EthClient.getBlockByTag", "Failed to call eth_getBlockByTag", err.Error(), 500)
+		return nil, common.Hash{}, utils.NewAppError(500, "EthClient.getBlockByTag Failed to call eth_getBlockByTag"+err.Error())
 	}
 
 	if len(raw) == 0 || string(raw) == "null" {
@@ -60,13 +63,13 @@ func (p *EthClient) getBlockByTag() (*types.Header, common.Hash, *utils.AppError
 	}
 
 	if err := json.Unmarshal(raw, &blockData); err != nil {
-		return nil, common.Hash{}, utils.NewAppError("EthClient.getBlockByTag", "Failed to unmarshal block data", err.Error(), 500)
+		return nil, common.Hash{}, utils.NewAppError(500, "EthClient.getBlockByTag Failed to unmarshal block data"+err.Error())
 	}
 
 	//解析区块号
 	num, ok := new(big.Int).SetString(blockData.Number[2:], 16)
 	if !ok {
-		return nil, common.Hash{}, utils.NewAppError("EthClient.getBlockByTag", "Failed to parse block number", "invalid block number format", 500)
+		return nil, common.Hash{}, utils.NewAppError(500, "EthClient.getBlockByTag Failed to parse block number invalid block number format")
 	}
 
 	// 构造完整的 Header
@@ -127,7 +130,7 @@ func (p *EthClient) fetchBlockWithRetry(blockNumber *big.Int, maxRetries int) (*
 				blockNumber.String(), attempt+1, maxRetries, backoff, err)
 			time.Sleep(backoff) // 等待一段时间后重试
 		}
-		lastErr = utils.NewAppError("EthClient.fetchBlockWithRetry", "Failed to fetch block", err.Error(), 500)
+		lastErr = utils.NewAppError(500, "EthClient.fetchBlockWithRetry Failed to fetch block"+err.Error())
 		time.Sleep(2 * time.Second) // 等待一段时间后重试
 	}
 	return nil, lastErr
@@ -150,7 +153,7 @@ func (p *EthClient) fetchBlockRange(start, end uint64, rateLimit time.Duration) 
 		}
 		result = append(result, *block)
 		successCount++
-		printBlockInfo(fmt.Sprintf("Block %d", num), block)
+		p.printBlockInfo(fmt.Sprintf("Block %d", num), block)
 
 		// 检查上下文是否已取消
 		select {
@@ -168,7 +171,7 @@ func (p *EthClient) fetchBlockRange(start, end uint64, rateLimit time.Duration) 
 func (p *EthClient) printBlockInfo(title string, block *types.Block) {
 }
 
-func (p *EthClient) queryTransactionByHash(txHashHex string) (tx *types.Transaction, isPending bool, receipt *types.Receipt, utils.AppError) {
+func (p *EthClient) queryTransactionByHash(txHashHex string) (*types.Transaction, bool, *types.Receipt, *utils.AppError) {
 	txHash := common.HexToHash(txHashHex)
 
 	tx, isPending, err := p.etchClient.TransactionByHash(*p.context, txHash)
@@ -182,4 +185,121 @@ func (p *EthClient) queryTransactionByHash(txHashHex string) (tx *types.Transact
 	}
 	return tx, isPending, receipt, nil
 
+}
+
+func (p *EthClient) sendTransaction(toAddrHex string, amountEth float64) *utils.AppError {
+	//TODO:后续从配置文件里获取
+	privKeyHex := os.Getenv("SENDER_PRIVATE_KEY")
+	if privKeyHex == "" {
+		log.Fatal("SENDER_PRIVATE_KEY is not set (required for send mode)")
+	}
+
+	privKey, err := crypto.HexToECDSA(privKeyHex)
+	if err != nil {
+		return utils.NewAppError(500, "EthClient.sendTransaction Invalid private key"+err.Error())
+	}
+
+	publicKey := privKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return utils.NewAppError(500, "EthClient.sendTransaction Cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+	}
+
+	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
+	nonce, err := p.etchClient.PendingNonceAt(*p.context, fromAddress)
+	if err != nil {
+		return utils.NewAppError(500, "EthClient.sendTransaction Failed to get nonce"+err.Error())
+	}
+
+	gasLimit := uint64(21000) // 标准交易的 gas limit
+
+	toAddr := common.HexToAddress(toAddrHex)
+
+	chainID, err := p.etchClient.NetworkID(*p.context)
+	if err != nil {
+		return utils.NewAppError(500, "EthClient.sendTransaction Failed to get network ID"+err.Error())
+	}
+
+	gasTipCap, err := p.etchClient.SuggestGasTipCap(*p.context)
+	if err != nil {
+		return utils.NewAppError(500, "EthClient.sendTransaction Failed to suggest gas tip cap"+err.Error())
+	}
+
+	// 获取 base fee，计算 fee cap
+	header, err := p.etchClient.HeaderByNumber(*p.context, nil)
+	if err != nil {
+		log.Fatalf("failed to get header: %v", err)
+	}
+
+	baseFee := header.BaseFee
+	if baseFee == nil {
+		gasPrice, err := p.etchClient.SuggestGasPrice(*p.context)
+		if err != nil {
+			return utils.NewAppError(500, "EthClient.sendTransaction Failed to suggest gas price"+err.Error())
+		}
+		baseFee = gasPrice
+	}
+
+	// fee cap = base fee * 2 + tip cap（简单策略）
+	gasFeeCap := new(big.Int).Add(
+		new(big.Int).Mul(baseFee, big.NewInt(2)),
+		gasTipCap,
+	)
+
+	// 转换 ETH 金额为 Wei
+	// amountEth * 1e18
+	amountWei := new(big.Float).Mul(
+		big.NewFloat(amountEth),
+		big.NewFloat(1e18),
+	)
+	valueWei, _ := amountWei.Int(nil)
+
+	balance, err := p.etchClient.BalanceAt(*p.context, fromAddress, nil)
+	if err != nil {
+		return utils.NewAppError(500, "EthClient.sendTransaction Failed to get account balance"+err.Error())
+	}
+
+	// 计算总费用：value + gasFeeCap * gasLimit
+	totalCost := new(big.Int).Add(
+		valueWei,
+		new(big.Int).Mul(gasFeeCap, big.NewInt(int64(gasLimit))),
+	)
+
+	if balance.Cmp(totalCost) < 0 {
+		log.Fatalf("insufficient balance: have %s wei, need %s wei", balance.String(), totalCost.String())
+	}
+
+	// 构造交易（EIP-1559 动态费用交易）
+	txData := &types.DynamicFeeTx{
+		ChainID:   chainID,
+		Nonce:     nonce,
+		GasTipCap: gasTipCap,
+		GasFeeCap: gasFeeCap,
+		Gas:       gasLimit,
+		To:        &toAddr,
+		Value:     valueWei,
+		Data:      nil,
+	}
+	tx := types.NewTx(txData)
+
+	// 签名交易
+	signer := types.NewLondonSigner(chainID)
+	signedTx, err := types.SignTx(tx, signer, privKey)
+	if err != nil {
+		log.Fatalf("failed to sign transaction: %v", err)
+	}
+
+	// 发送交易
+	if err := p.etchClient.SendTransaction(*p.context, signedTx); err != nil {
+		log.Fatalf("failed to send transaction: %v", err)
+	}
+	return nil
+}
+
+// trim0x 移除十六进制字符串前缀 "0x"
+func (p *EthClient) trim0x(s string) string {
+	if len(s) >= 2 && s[:2] == "0x" {
+		return s[2:]
+	}
+	return s
 }
