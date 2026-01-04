@@ -106,3 +106,7 @@ func (p *EthClient) getBlockByTag() (*types.Header, common.Hash, *utils.AppError
 	// 因此，我们应该直接使用 RPC 返回的 hash，它与浏览器显示的 hash 一致
 	return header, blockData.Hash, nil
 }
+
+func (p *EthClient) fetchBlockWithRetry(blockNumber *big.Int, maxRetries int) (*types.Block, *utils.AppError) {
+
+}
