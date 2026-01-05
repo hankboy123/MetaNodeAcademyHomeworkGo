@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"sh-manage/consts"
+	"sh-ethereum/consts"
 
 	"github.com/gin-gonic/gin"
 )
