@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math"
 	"math/big"
 	"os"
 	"os/signal"
@@ -45,16 +46,17 @@ const erc20ABIJSON = `[
 ]`
 
 type EthListener struct {
+	rpcURL    string
 	contract  *common.Address
 	context   *context.Context
 	rpcClient *ethclient.Client
 }
 
-func NewEthListener(a *common.Address, c *context.Context, d *ethclient.Client) *EthListener {
-	return &EthListener{contract: a, context: c, rpcClient: d}
+func NewEthListener(r string, a *common.Address, c *context.Context, d *ethclient.Client) *EthListener {
+	return &EthListener{rpcURL: r, contract: a, context: c, rpcClient: d}
 }
 
-func (e *EthListener) Listen() {
+func (e *EthListener) Listen() *utils.AppError {
 
 	// 解析 ABI
 	parsedABI, err := abi.JSON(strings.NewReader(erc20ABIJSON))
@@ -66,7 +68,7 @@ func (e *EthListener) Listen() {
 	subNewHeader, err := e.rpcClient.SubscribeNewHead(*e.context, headerCh)
 	if err != nil {
 		println("Failed to subscribe to new headers:", err.Error())
-		return
+		return utils.NewAppError(500, "Failed to subscribe to new headers"+err.Error())
 	}
 
 	sigCh := make(chan os.Signal, 1)
@@ -80,7 +82,7 @@ func (e *EthListener) Listen() {
 	subLogs, err := e.rpcClient.SubscribeFilterLogs(*e.context, query, logsCh)
 	if err != nil {
 		println("Failed to subscribe to logs:", err.Error())
-		return
+		return utils.NewAppError(500, "Failed to subscribe to  logs"+err.Error())
 	}
 
 	for {
@@ -98,17 +100,17 @@ func (e *EthListener) Listen() {
 			)
 		case errLog := <-subLogs.Err():
 			println("Log subscription error:", errLog.Error())
-			return
+			return utils.NewAppError(500, "Log subscription error"+errLog.Error())
 		case errNewHeader := <-subNewHeader.Err():
 			println("Subscription error:", errNewHeader.Error())
-			return
+			return utils.NewAppError(500, "Subscription error"+errNewHeader.Error())
 		case sig := <-sigCh:
 			// Handle graceful shutdown
 			fmt.Printf("received signal %s, shutting down...\n", sig.String())
-			return
+			return nil
 		case <-(*e.context).Done():
 			fmt.Println("context cancelled, shutting down...")
-			return
+			return nil
 
 		}
 	}
@@ -243,4 +245,54 @@ func (e *EthListener) parseLogEvent(vLog *types.Log, parseABI abi.ABI) (map[stri
 	}
 
 	return event, nil
+}
+
+func (e *EthListener) ListenWithReconnect() {
+	var attempt int
+
+	for {
+		select {
+		case <-(*e.context).Done():
+			fmt.Println("Context cancelled, stopping reconnection loop")
+			return
+		default:
+		}
+		attempt++
+		log.Printf("connect attempt #%d to %s", attempt, e.rpcURL)
+
+		client, err := ethclient.DialContext(*e.context, e.rpcURL)
+		if err != nil {
+			log.Printf("failed to connect to Ethereum node: %v", err)
+			e.sleepWithBackoff(attempt)
+			continue
+		}
+		e.rpcClient = client
+		log.Println("connected to Ethereum node")
+
+		errForListen := e.Listen()
+		if errForListen != nil {
+			e.sleepWithBackoff(attempt)
+			goto RECONNECT
+		}
+		return
+
+	RECONNECT:
+	}
+
+}
+
+func (e *EthListener) sleepWithBackoff(attempt int) {
+	sec := int(math.Min(60, math.Pow(2, float64(attempt))))
+	d := time.Duration(sec) * time.Second
+	fmt.Printf("Sleeping for %s before retrying...\n", d)
+	t := time.NewTimer(d)
+	defer t.Stop()
+
+	select {
+	case <-t.C:
+		return
+	case <-(*e.context).Done():
+		fmt.Println("context cancelled during backoff sleep")
+		return
+	}
 }
