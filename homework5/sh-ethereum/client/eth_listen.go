@@ -271,6 +271,7 @@ func (e *EthListener) ListenWithReconnect() {
 
 		errForListen := e.Listen()
 		if errForListen != nil {
+			e.rpcClient.Close()
 			e.sleepWithBackoff(attempt)
 			goto RECONNECT
 		}
