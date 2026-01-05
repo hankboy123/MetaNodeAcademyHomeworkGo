@@ -19,7 +19,6 @@ import (
 )
 
 type EthClient struct {
-	// 这里可\以添加数据库连接等依赖
 	context    *context.Context
 	etchClient *ethclient.Client
 }
