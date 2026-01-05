@@ -22,28 +22,6 @@ import (
 )
 
 // ERC-20 标准 ABI（包含 Transfer 事件定义）
-const erc20ABIJSON = `[
-  {
-    "anonymous": false,
-    "inputs": [
-      {"indexed": true, "name": "from", "type": "address"},
-      {"indexed": true, "name": "to", "type": "address"},
-      {"indexed": false, "name": "value", "type": "uint256"}
-    ],
-    "name": "Transfer",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {"indexed": true, "name": "owner", "type": "address"},
-      {"indexed": true, "name": "spender", "type": "address"},
-      {"indexed": false, "name": "value", "type": "uint256"}
-    ],
-    "name": "Approval",
-    "type": "event"
-  }
-]`
 
 type EthListener struct {
 	rpcURL    string
