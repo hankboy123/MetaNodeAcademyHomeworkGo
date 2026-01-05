@@ -303,3 +303,109 @@ func (p *EthClient) trim0x(s string) string {
 	}
 	return s
 }
+
+func (p *EthClient) weiToEth(wei *big.Int) *big.Float {
+	weiFloat := new(big.Float).SetInt(wei)
+	ethValue := new(big.Float).Quo(weiFloat, big.NewFloat(1e18))
+	return ethValue
+}
+func (p *EthClient) ethToWei(eth float64) *big.Int {
+	ethFloat := big.NewFloat(eth)
+	weiFloat := new(big.Float).Mul(ethFloat, big.NewFloat(1e18))
+	weiInt, _ := weiFloat.Int(nil)
+	return weiInt
+}
+func (p *EthClient) getCurrentBlockNumber() (uint64, *utils.AppError) {
+	header, err := p.etchClient.HeaderByNumber(*p.context, nil)
+	if err != nil {
+		return 0, utils.NewAppError(500, "EthClient.getCurrentBlockNumber Failed to get current block number"+err.Error())
+	}
+	return header.Number.Uint64(), nil
+}
+func (p *EthClient) getBalanceAt(addressHex string) (*big.Int, *utils.AppError) {
+	address := common.HexToAddress(addressHex)
+	balance, err := p.etchClient.BalanceAt(*p.context, address, nil)
+	if err != nil {
+		return nil, utils.NewAppError(500, "EthClient.getBalanceAt Failed to get balance at address"+err.Error())
+	}
+	return balance, nil
+}
+func (p *EthClient) getTransactionCount(addressHex string) (uint64, *utils.AppError) {
+	address := common.HexToAddress(addressHex)
+	nonce, err := p.etchClient.NonceAt(*p.context, address, nil)
+	if err != nil {
+		return 0, utils.NewAppError(500, "EthClient.getTransactionCount Failed to get transaction count"+err.Error())
+	}
+	return nonce, nil
+}
+func (p *EthClient) getGasPrice() (*big.Int, *utils.AppError) {
+	gasPrice, err := p.etchClient.SuggestGasPrice(*p.context)
+	if err != nil {
+		return nil, utils.NewAppError(500, "EthClient.getGasPrice Failed to get gas price"+err.Error())
+	}
+	return gasPrice, nil
+}
+func (p *EthClient) getNetworkID() (*big.Int, *utils.AppError) {
+	networkID, err := p.etchClient.NetworkID(*p.context)
+	if err != nil {
+		return nil, utils.NewAppError(500, "EthClient.getNetworkID Failed to get network ID"+err.Error())
+	}
+	return networkID, nil
+}
+func (p *EthClient) getPendingNonceAt(addressHex string) (uint64, *utils.AppError) {
+	address := common.HexToAddress(addressHex)
+	nonce, err := p.etchClient.PendingNonceAt(*p.context, address)
+	if err != nil {
+		return 0, utils.NewAppError(500, "EthClient.getPendingNonceAt Failed to get pending nonce"+err.Error())
+	}
+	return nonce, nil
+}
+func (p *EthClient) getSuggestedGasTipCap() (*big.Int, *utils.AppError) {
+	gasTipCap, err := p.etchClient.SuggestGasTipCap(*p.context)
+	if err != nil {
+		return nil, utils.NewAppError(500, "EthClient.getSuggestedGasTipCap Failed to suggest gas tip cap"+err.Error())
+	}
+	return gasTipCap, nil
+}
+func (p *EthClient) getHeaderByNumber(blockNumber *big.Int) (*types.Header, *utils.AppError) {
+	header, err := p.etchClient.HeaderByNumber(*p.context, blockNumber)
+	if err != nil {
+		return nil, utils.NewAppError(500, "EthClient.getHeaderByNumber Failed to get header by number"+err.Error())
+	}
+	return header, nil
+}
+func (p *EthClient) getBlockByNumber(blockNumber *big.Int) (*types.Block, *utils.AppError) {
+	block, err := p.etchClient.BlockByNumber(*p.context, blockNumber)
+	if err != nil {
+		return nil, utils.NewAppError(500, "EthClient.getBlockByNumber Failed to get block by number"+err.Error())
+	}
+	return block, nil
+}
+func (p *EthClient) getTransactionReceipt(txHashHex string) (*types.Receipt, *utils.AppError) {
+	txHash := common.HexToHash(txHashHex)
+	receipt, err := p.etchClient.TransactionReceipt(*p.context, txHash)
+	if err != nil {
+		return nil, utils.NewAppError(500, "EthClient.getTransactionReceipt Failed to get transaction receipt"+err.Error())
+	}
+	return receipt, nil
+}
+func (p *EthClient) getTransactionByHash(txHashHex string) (*types.Transaction, bool, *utils.AppError) {
+	txHash := common.HexToHash(txHashHex)
+	tx, isPending, err := p.etchClient.TransactionByHash(*p.context, txHash)
+	if err != nil {
+		return nil, false, utils.NewAppError(500, "EthClient.getTransactionByHash Failed to get transaction by hash"+err.Error())
+	}
+	return tx, isPending, nil
+}
+func (p *EthClient) sendRawTransaction(signedTxData []byte) (common.Hash, *utils.AppError) {
+	tx := new(types.Transaction)
+	if err := tx.UnmarshalBinary(signedTxData); err != nil {
+		return common.Hash{}, utils.NewAppError(500, "EthClient.sendRawTransaction Failed to unmarshal signed transaction data"+err.Error())
+	}
+
+	err := p.etchClient.SendTransaction(*p.context, tx)
+	if err != nil {
+		return common.Hash{}, utils.NewAppError(500, "EthClient.sendRawTransaction Failed to send raw transaction"+err.Error())
+	}
+	return tx.Hash(), nil
+}
