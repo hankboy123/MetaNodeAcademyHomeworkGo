@@ -62,10 +62,10 @@ func Load(configPath string) *Config {
 	if configPath != "" {
 		viper.SetConfigFile(configPath)
 	} else {
-		viper.SetConfigName("config")
-		viper.AddConfigPath("./config")
-		viper.AddConfigPath("../config")
-		viper.AddConfigPath("../../config")
+		viper.SetConfigName("config.yaml")
+		viper.AddConfigPath("./")
+		viper.AddConfigPath("../")
+		viper.AddConfigPath("../../")
 
 	}
 
@@ -105,6 +105,6 @@ func GetMySQLDSN(config *Config) string {
 	port := config.Database.Port
 	dbname := config.Database.DBName
 
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		user, pass, host, port, dbname)
 }

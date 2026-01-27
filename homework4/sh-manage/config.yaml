@@ -6,9 +6,9 @@ server:
 database:
   host: "localhost"
   port: 3306
-  username: "root"
-  password: "password"
-  dbname: "myapp"
+  username: "admin"
+  password: "Lh19900205!"
+  dbname: "sh-manage"
 
 jwt:
   secret: "your-secret-key-change-in-production"
