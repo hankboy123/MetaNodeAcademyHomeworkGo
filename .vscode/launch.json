@@ -25,6 +25,14 @@
             "cwd": "${workspaceFolder}",  // 工作区根目录
         },
         {
+            "name": "debug sh-manage",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}/homework4/sh-manage/main.go",
+            "cwd": "${workspaceFolder}/homework4/sh-manage/",  // 工作区根目录
+        },
+        {
             "name": "Run Tests",
             "type": "go",
             "request": "launch",
